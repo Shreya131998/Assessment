@@ -258,13 +258,13 @@ const loginUser = async function (req, res) {
     try {
       
       let whomFollowed = await userModel.findByIdAndUpdate({ _id: req.body.followingId},
-          { $push: { following: req.body.followerId } }
+          {$addToSet: { followers: req.body.followerId } }
 
       );
       
       
       let whoFollowedMe = await userModel.findByIdAndUpdate({ _id: req.body.followerId },
-          { $push: { followers: req.body.followingId } }
+          { $addToSet: { following: req.body.followingId } }
       )
     
       return res.status(200).send({ message: "User Follow Success"});
@@ -280,10 +280,10 @@ const loginUser = async function (req, res) {
   const unFollowApi=async function(req,res){
     try {
       let whomUnFollowed = await userModel.findByIdAndUpdate({ _id: req.body.followingId },
-          { $pull: { following: req.body.followerId } }
+          { $pull: { followers: req.body.followerId } }
       );
       let whoUnFollowedMe = await userModel.findByIdAndUpdate({ _id: req.body.followerId },
-          { $pull: { followers: req.body.followingId } }
+          { $pull: { following: req.body.followingId } }
       )
       return res.status(200).send({ message: "User UnFollow Success"});
   } catch (e) {
@@ -460,7 +460,7 @@ const loginUser = async function (req, res) {
         let new_obj={postId:post[i]._id,likes:post[i].likes}
         new_list.push(new_obj)
       }
-      console.log(1)
+    
 
 
       let newObj={
@@ -593,7 +593,54 @@ const loginUser = async function (req, res) {
 
   }
 
+  const feedsApi=async function(req,res){
+    try{
+      let page=req.query.pageSkipped
+      let userId=req.params.userId
+      if (!ObjectId.isValid(userId)) {
+        return res.status(400).send({ status: false, message: "Please enter valid userId" })
+    }
+    let userToken = req.userId
+      
+      if (!ObjectId.isValid(userToken)) {
+          return res.status(400).send({ status: false, message: "Please enter valid userId" })
+      }
+
+      let user = await userModel.findOne({ _id: userId })
+      if (!user) {
+          return res.status(404).send({ status: false, message: "No user found" })
+      }
+
+      if (userToken !== userId) {
+          return res.status(403).send({ status: false, message: "Unauthorized user" })
+      }
+      let data={}
+      
+      const getPost =await postModel.aggregate([{ $sample: { size: 1 } }])
+      data.getRandomPost=getPost
+      console.log(getPost)
+      const allPost=await postModel.find().skip(10*(page-1)).limit(10)
+      data.get10Posts=allPost
+      let arr=[]
+      const post=await postModel.find()
+      for(let i=0;i<post.length;i++){
+        if(post[i].likes.includes(userId) && userId!=post.userId){
+          arr.push(post[i]._id)
+
+        }
+      }
+      data.post_liked_by_user=arr
+      return res.status(200).send({status:true,message:data})
+
+
+
+    }
+    catch(err){
+      return res.status(500).send({message:err.message})
+    }
+  }
+
   
 
 
-module.exports={createUser,loginUser,postApi,followersApi,unFollowApi,editPost,deletePost,likeApi,profileApi,editProfile}
+module.exports={createUser,loginUser,postApi,followersApi,unFollowApi,editPost,deletePost,likeApi,profileApi,editProfile,feedsApi}
