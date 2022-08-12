@@ -24,7 +24,12 @@ Edit Post
 
 bash
   https://wowtalent-assesment.herokuapp.com/post/:userId/:postId
+  
+Delete Post
 
+bash
+  https://wowtalent-assesment.herokuapp.com/post/:userId/:postId
+  
 Follow API
 
 bash
